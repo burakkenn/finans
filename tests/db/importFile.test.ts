@@ -1,7 +1,7 @@
 import 'fake-indexeddb/auto'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { db, saveSettings } from '../../src/db/db'
-import { addRuleFromTxn, importFile, markNeutralPerson } from '../../src/db/importFile'
+import { addRuleFromTxn, countIncomingAsIncome, importFile, markNeutralPerson } from '../../src/db/importFile'
 import { makeXls } from '../helpers/makeXls'
 
 const rows = [
@@ -82,5 +82,33 @@ describe('rule learning safety (review C1, C2, I1)', () => {
     await markNeutralPerson('AYŞE YILMAZ')
     expect(await db.rules.count()).toBe(0)
     expect((await db.txns.get('acc:R3:3000.00'))).toMatchObject({ kind: 'notr', category: 'Kişiler' })
+  })
+})
+
+describe('rules learned from a person remember the direction', () => {
+  it('teaching an incoming transfer does not change outgoing ones', async () => {
+    const rows2 = [
+      ['20/11/2026-15:54:15', '20/11/2026', 'İşCep', 400, 400, 0, 'FA', 'FAST', 'VELİ ÇAM*0010**1*FAST', '', '', '', '', 'P1'],
+      ['21/11/2026-15:54:15', '21/11/2026', 'İşCep', -300, 100, 0, 'FA', 'FAST', 'VELİ ÇAM*TR1*X tarafından aktarılan', '', '', '', '', 'P2'],
+    ]
+    await importFile(new File([makeXls('Vadesiz Hesap', true, rows2)], 'h2.xls'))
+    const incoming = (await db.txns.get('acc:P1:400.00'))!
+    await addRuleFromTxn(incoming, 'counterparty', 'gelir', 'Diğer gelir')
+    expect((await db.txns.get('acc:P2:-300.00'))?.kind).toBe('gider')
+    expect((await db.rules.toArray())[0].direction).toBe('in')
+  })
+})
+
+describe('countIncomingAsIncome', () => {
+  it('turns money received from a neutral person into income under their first name, outgoing stays neutral', async () => {
+    const rows3 = [
+      ['20/11/2026-15:54:15', '20/11/2026', 'İşCep', 400, 400, 0, 'FA', 'FAST', 'ŞULE ÖZ*0010**1*FAST', '', '', '', '', 'Q1'],
+      ['21/11/2026-15:54:15', '21/11/2026', 'İşCep', -300, 100, 0, 'FA', 'FAST', 'ŞULE ÖZ*TR1*X tarafından aktarılan', '', '', '', '', 'Q2'],
+    ]
+    await importFile(new File([makeXls('Vadesiz Hesap', true, rows3)], 'h3.xls'))
+    await markNeutralPerson('ŞULE ÖZ')
+    await countIncomingAsIncome('ŞULE ÖZ')
+    expect(await db.txns.get('acc:Q1:400.00')).toMatchObject({ kind: 'gelir', category: 'Şule' })
+    expect(await db.txns.get('acc:Q2:-300.00')).toMatchObject({ kind: 'notr', category: 'Kişiler' })
   })
 })

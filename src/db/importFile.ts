@@ -55,10 +55,11 @@ export async function addRuleFromTxn(t: Txn, field: Rule['field'], kind: Kind, c
     await db.txns.update(t.id, { kind, category, userEdited: true, needsReview: false })
     return
   }
+  const direction: Rule['direction'] = ruleField === 'counterparty' ? (t.amount > 0 ? 'in' : 'out') : undefined
   await db.transaction('rw', db.rules, async () => {
-    const same = await db.rules.filter(r => r.field === ruleField && normTr(r.match) === match).primaryKeys()
+    const same = await db.rules.filter(r => r.field === ruleField && normTr(r.match) === match && (!r.direction || !direction || r.direction === direction)).primaryKeys()
     await db.rules.bulkDelete(same)
-    await db.rules.put({ id: crypto.randomUUID(), field: ruleField, match, kind, category })
+    await db.rules.put({ id: crypto.randomUUID(), field: ruleField, match, kind, category, ...(direction ? { direction } : {}) })
   })
   await db.txns.update(t.id, { userEdited: false })
   await reclassifyAll()
@@ -71,5 +72,19 @@ export async function markNeutralPerson(counterparty: string): Promise<void> {
   const theirRules = await db.rules.filter(r => r.field === 'counterparty' && normTr(r.match) === cp).primaryKeys()
   await db.rules.bulkDelete(theirRules)
   await db.txns.filter(t => !!t.counterparty && normTr(t.counterparty) === cp).modify({ userEdited: false })
+  await reclassifyAll()
+}
+
+/** Money received from this person counts as income (category = their first name); money sent is unchanged. */
+export async function countIncomingAsIncome(counterparty: string): Promise<void> {
+  const cp = normTr(counterparty)
+  const first = cp.split(' ')[0].toLocaleLowerCase('tr-TR')
+  const category = first.charAt(0).toLocaleUpperCase('tr-TR') + first.slice(1)
+  await db.transaction('rw', db.rules, async () => {
+    const old = await db.rules.filter(r => r.field === 'counterparty' && normTr(r.match) === cp && r.direction === 'in').primaryKeys()
+    await db.rules.bulkDelete(old)
+    await db.rules.put({ id: crypto.randomUUID(), field: 'counterparty', match: cp, kind: 'gelir', category, direction: 'in' })
+  })
+  await db.txns.filter(t => !!t.counterparty && normTr(t.counterparty) === cp && t.amount > 0).modify({ userEdited: false })
   await reclassifyAll()
 }

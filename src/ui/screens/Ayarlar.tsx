@@ -3,7 +3,8 @@ import { useRef, useState } from 'react'
 import { exportBackup, importBackup } from '../../core/backup'
 import type { Kind } from '../../core/types'
 import { db, saveSettings } from '../../db/db'
-import { importFile, reclassifyAll } from '../../db/importFile'
+import { countIncomingAsIncome, importFile, reclassifyAll } from '../../db/importFile'
+import { normTr } from '../../core/text'
 import { ReviewQueue } from '../components/ReviewQueue'
 import { categoriesFor } from '../components/TxnEditor'
 import { clearErrors, readErrors } from '../errorLog'
@@ -186,18 +187,25 @@ export function Ayarlar({ txns, settings, notify }: ScreenProps) {
         <div style={{ marginTop: 12 }}>
           <b className="small">Sayılmayan kişiler</b>
           {settings.neutralPeople.length === 0 && <p className="muted small">Yok</p>}
-          {settings.neutralPeople.map(p => (
-            <div className="list-row" key={p}><span className="grow">{p}</span>
-              <button className="btn ghost small" onClick={async () => { await saveSettings({ ...settings, neutralPeople: settings.neutralPeople.filter(x => x !== p) }); await reclassifyAll() }}>Kaldır</button>
-            </div>
-          ))}
+          {settings.neutralPeople.map(p => {
+            const inRule = rules.find(r => r.field === 'counterparty' && r.direction === 'in' && normTr(r.match) === p && r.kind === 'gelir')
+            return (
+              <div className="list-row" key={p} style={{ flexWrap: 'wrap' }}>
+                <span className="grow">{p}<br /><span className="muted small">{inRule ? `Gelenler gelir (${inRule.category}), gidenler sayılmıyor` : 'Gelen de giden de sayılmıyor'}</span></span>
+                {inRule
+                  ? <button className="btn ghost small" onClick={async () => { await db.rules.delete(inRule.id); await reclassifyAll() }}>Gelenleri sayma</button>
+                  : <button className="btn tonal small" onClick={async () => { await countIncomingAsIncome(p); notify({ text: 'Bu kişiden gelenler artık gelir' }) }}>Gelenleri gelir say</button>}
+                <button className="btn ghost small" onClick={async () => { await saveSettings({ ...settings, neutralPeople: settings.neutralPeople.filter(x => x !== p) }); await reclassifyAll() }}>Kaldır</button>
+              </div>
+            )
+          })}
         </div>
         <div style={{ marginTop: 12 }}>
           <b className="small">Öğrendiğim kurallar</b>
           {rules.length === 0 && <p className="muted small">Henüz yok</p>}
           {rules.map(r => (
             <div className="list-row" key={r.id}>
-              <span className="grow ellipsis">{r.match} → {r.kind === 'notr' ? 'Sayılmaz' : r.category}</span>
+              <span className="grow ellipsis">{r.match}{r.direction === 'in' ? ' (gelen)' : r.direction === 'out' ? ' (giden)' : ''} → {r.kind === 'notr' ? 'Sayılmaz' : r.category}</span>
               <button className="btn ghost small" onClick={async () => { await db.rules.delete(r.id); await reclassifyAll() }}>Sil</button>
             </div>
           ))}

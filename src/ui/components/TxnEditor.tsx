@@ -104,7 +104,7 @@ export function TxnEditor({ txn, txns, onClose, notify }: { txn: Txn; txns: Txn[
 
       {!neutralPerson && (
         <label className="check"><input type="checkbox" checked={always} onChange={e => setAlways(e.target.checked)} />
-          {txn.counterparty ? `${txn.counterparty} için bundan sonra hep böyle yap` : 'Bu işyeri için bundan sonra hep böyle yap'}
+          {txn.counterparty ? `Bu kişi${txn.amount > 0 ? 'den gelen' : 'ye giden'} paralar için hep böyle yap` : 'Bu işyeri için bundan sonra hep böyle yap'}
         </label>
       )}
       {!neutralPerson && kind === 'gelir' && txn.amount > 0 && (

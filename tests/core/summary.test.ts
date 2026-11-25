@@ -45,3 +45,10 @@ describe('monthSummary', () => {
     expect(periodSummary(txns, { start: '2026-11-07' }).gider).toBe(0)
   })
 })
+
+describe('income breakdown', () => {
+  it('lists income by category with interest as a net amount', () => {
+    const s = periodSummary(txns, { start: '2026-11-01', end: '2026-11-30' })
+    expect(s.gelirByCategory).toEqual([{ category: 'Harçlık', amount: 3000 }, { category: 'Faiz', amount: 31.17 }])
+  })
+})

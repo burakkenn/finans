@@ -33,6 +33,8 @@ export interface Rule {
   match: string
   kind: Kind
   category: string
+  /** only money received (in) or sent (out); undefined = both */
+  direction?: 'in' | 'out'
 }
 
 export interface Subscription {

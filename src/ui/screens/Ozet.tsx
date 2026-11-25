@@ -72,6 +72,18 @@ export function Ozet({ txns, subs, settings, period, periods, setPeriod, goto }:
         </button>
       )}
 
+      {s.gelirByCategory.length > 0 && (
+        <div className="card">
+          <h3>Para nereden geldi</h3>
+          {s.gelirByCategory.map(c => (
+            <div className="cat" key={c.category}>
+              <div className="row"><span>{emojiFor(c.category)} {c.category}</span><b className="money pos">{formatTL(c.amount)}</b></div>
+              <div className="bar"><i style={{ width: `${Math.max(0, (c.amount / Math.max(...s.gelirByCategory.map(x => x.amount), 1)) * 100)}%`, background: '#43A872' }} /></div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {s.byCategory.length > 0 && (
         <div className="card">
           <h3>Para nereye gitti</h3>

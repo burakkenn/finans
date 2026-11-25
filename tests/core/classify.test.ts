@@ -66,3 +66,13 @@ describe('classify rule safety (review C1)', () => {
     expect(c(acc({ amount: -1500.25, bankType: 'Para Çekme', description: 'X KRE.KART BORÇ ÖDEME' }), [bad])).toMatchObject({ kind: 'notr', category: 'Kart ödemesi' })
   })
 })
+
+describe('direction-aware rules', () => {
+  const inRule: Rule = { id: 'r', field: 'counterparty', match: 'CAN TEST', kind: 'gelir', category: 'Diğer gelir', direction: 'in' }
+  it('an incoming-only rule beats the neutral-person list for money received', () => {
+    expect(c(acc({ amount: 500, bankType: 'FAST', counterparty: 'CAN TEST' }), [inRule])).toMatchObject({ kind: 'gelir', category: 'Diğer gelir' })
+  })
+  it('money sent to the same person stays neutral', () => {
+    expect(c(acc({ amount: -500, bankType: 'FAST', counterparty: 'CAN TEST' }), [inRule])).toMatchObject({ kind: 'notr', category: 'Kişiler' })
+  })
+})

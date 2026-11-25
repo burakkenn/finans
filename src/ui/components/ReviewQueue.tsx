@@ -77,7 +77,7 @@ function ReviewCard({ t, txns, notify }: { t: Txn; txns: Txn[]; notify: (m: Toas
       <div className="row" style={{ marginTop: 10 }}>
         <label className="check" style={{ marginTop: 0, fontSize: 13 }}>
           <input type="checkbox" checked={always} onChange={e => setAlways(e.target.checked)} />
-          {t.counterparty ? 'Bu kişi için hep böyle' : 'Bu işyeri için hep böyle'}
+          {t.counterparty ? (t.amount > 0 ? 'Bu kişiden gelenler için hep böyle' : 'Bu kişiye gidenler için hep böyle') : 'Bu işyeri için hep böyle'}
         </label>
         <button className="btn ghost small" onClick={() => setEditing(true)}>Başka…</button>
       </div>

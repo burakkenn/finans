@@ -23,6 +23,7 @@ export function classify(t: RawTxn, rules: Rule[], s: Settings): Result {
 
   for (const rule of rules) {
     if (normTr(rule.match).length < 3) continue
+    if (rule.direction && (rule.direction === 'in') !== (t.amount > 0)) continue
     const value = rule.field === 'counterparty' ? cp : desc
     if (value && value.includes(normTr(rule.match))) return r(rule.kind, rule.category)
   }
