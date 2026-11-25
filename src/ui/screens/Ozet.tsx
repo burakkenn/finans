@@ -43,8 +43,12 @@ export function Ozet({ txns, subs, settings, period, periods, setPeriod, goto }:
       <div className="hero">
         <div className="row"><span className="k">Bu dönem elinde kalan</span><span className="k" style={{ fontWeight: 500 }}>{rangeLabel(period)}</span></div>
         <div className="v money">{formatTL(s.kalan, true)}</div>
-        <div className="row">
-          <div className="pill"><div className="k">Gelir</div><div className="v money pos">{formatTL(s.gelir)}</div></div>
+        <div className="row" style={{ alignItems: 'stretch' }}>
+          <div className="pill">
+            <div className="k">Gelir</div>
+            <div className="v money pos">{formatTL(s.gelir)}</div>
+            {s.faiz.net !== 0 && <div className="k money" style={{ marginTop: 4, fontSize: 11.5, whiteSpace: 'nowrap' }}>💰 {formatTL(s.faiz.net, true)} faiz dahil</div>}
+          </div>
           <div className="pill"><div className="k">Gider</div><div className="v money neg">{formatTL(s.gider)}</div></div>
         </div>
         {spentPct !== undefined && (
