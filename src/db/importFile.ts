@@ -1,6 +1,4 @@
 import { classify } from '../core/classify'
-import { parseAccountXls } from '../core/parseAccount'
-import { parseCardPdf } from '../core/parseCard'
 import { merchantKey } from '../core/subscriptions'
 import { normTr } from '../core/text'
 import type { Kind, RawTxn, Rule, Source, Txn } from '../core/types'
@@ -14,9 +12,11 @@ export async function importFile(file: File): Promise<{ added: number; skipped: 
   let raw: RawTxn[]
   let source: Source
   if (name.endsWith('.pdf')) {
+    const { parseCardPdf } = await import('../core/parseCard')
     raw = await parseCardPdf(buf)
     source = 'kart'
   } else if (name.endsWith('.xls') || name.endsWith('.xlsx')) {
+    const { parseAccountXls } = await import('../core/parseAccount')
     const r = parseAccountXls(buf)
     raw = r.txns
     source = r.source
