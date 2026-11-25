@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { parseCardLines, parseCardPdf, type TextLine } from '../../src/core/parseCard'
+import { extractPdfLines, parseCardLines, parseCardPdf, type TextLine } from '../../src/core/parseCard'
+import { parseTrAmount } from '../../src/core/text'
 
 // Real layout: TUTAR header item at x=400 w=28, "TAKSİT BİLGİSİ MAXIPUAN" at x=448, puan values at x≈551
 const header: TextLine = { page: 1, y: 487, items: [
@@ -55,8 +56,28 @@ describe('parseCardLines', () => {
 const real = 'fixtures-private/kart-ekstre.pdf'
 it.skipIf(!existsSync(real))('real statement balances: previous + purchases - payments = debt', async () => {
   const b = readFileSync(real)
-  const t = await parseCardPdf(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength))
+  const buf = b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength)
+  const t = await parseCardPdf(buf.slice(0))
+  // read both totals from the statement itself so no real amount lives in the repo
+  const text = (await extractPdfLines(buf.slice(0))).map(l => l.items.map(i => i.str).join(' '))
+  const amountIn = (re: RegExp) => parseTrAmount(text.find(s => re.test(s))!.match(/-?[\d.]+,\d{2}/)![0])
+  const previous = amountIn(/ÖNCEKİ HESAP ÖZETİ/)
+  const debt = amountIn(/^TOPLAM/)
   const net = t.reduce((s, x) => s + x.amount, 0) // purchases negative, payments positive
-  expect(Math.round((-net) * 100) / 100).toBeCloseTo(8000 - 9000, 2)
+  expect(Math.round((-net) * 100) / 100).toBeCloseTo(debt - previous, 2)
   expect(t.length).toBeGreaterThan(100)
+})
+
+describe('statement identity in ids (review I3)', () => {
+  const stmt = (kesim: string): TextLine[] => [
+    { page: 1, y: 700, items: [{ str: 'Hesap Kesim Tarihi:', x: 480, y: 700, w: 60 }, { str: kesim, x: 700, y: 700, w: 40 }] },
+    header,
+    { page: 1, y: 470, items: [{ str: '01/10/2026 FOO TAKSITLI ISTANBUL TR', x: 61, y: 470, w: 150 }, { str: '100,00', x: 407, y: 470, w: 22 }, { str: '2/6', x: 460, y: 470, w: 10 }] },
+  ]
+  it('the same row on two different statements gets two ids', () => {
+    expect(parseCardLines(stmt('17.11.2026'))[0].id).not.toBe(parseCardLines(stmt('17.12.2026'))[0].id)
+  })
+  it('the same statement parsed twice gives the same ids', () => {
+    expect(parseCardLines(stmt('17.11.2026'))[0].id).toBe(parseCardLines(stmt('17.11.2026'))[0].id)
+  })
 })

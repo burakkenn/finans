@@ -34,3 +34,14 @@ describe('displayTitle', () => {
     expect(displayTitle(tx({ description: 'BOCADO RESTORAN' }))).toBe('BOCADO RESTORAN')
   })
 })
+
+import { parseAmountInput } from '../../src/ui/format'
+describe('parseAmountInput (review I2)', () => {
+  it('accepts dot or comma as decimal mark', () => {
+    expect(parseAmountInput('12.50')).toBe(12.5)
+    expect(parseAmountInput('12,5')).toBe(12.5)
+    expect(parseAmountInput('1.250')).toBe(1250)
+    expect(parseAmountInput('1.250,50')).toBe(1250.5)
+    expect(parseAmountInput('300')).toBe(300)
+  })
+})

@@ -47,3 +47,10 @@ export function displayTitle(t: Txn): string {
   if (t.category === 'Banka ücreti' && /^ÜCRET/i.test(t.description)) return 'Transfer ücreti'
   return t.counterparty ?? t.description
 }
+
+export function parseAmountInput(s: string): number {
+  const v = s.trim().replace(/\s|₺/g, '')
+  if (v.includes(',')) return Number(v.replace(/\./g, '').replace(',', '.'))
+  if (/^\d+\.\d{1,2}$/.test(v)) return Number(v)
+  return Number(v.replace(/\./g, ''))
+}

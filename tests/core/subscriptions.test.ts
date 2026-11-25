@@ -64,3 +64,13 @@ describe('subscriptions', () => {
     expect(subscriptionView(apple, subs, '2026-11')).toEqual([])
   })
 })
+
+describe('merchantKey city handling (review C1)', () => {
+  it('keeps words that only start with a city name', () => {
+    expect(merchantKey('ISTANBULKART ISTANBUL TR')).toBe('ISTANBULKART')
+    expect(merchantKey('ISTANBUL HAVALIMANI DUTY ISTANBUL TR')).not.toBe('')
+  })
+  it('never returns an empty key for a non-empty description', () => {
+    expect(merchantKey('ISTANBUL TR')).not.toBe('')
+  })
+})

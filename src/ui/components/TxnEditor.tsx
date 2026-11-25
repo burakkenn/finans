@@ -1,8 +1,7 @@
 import { useState } from 'react'
-import { normTr } from '../../core/text'
 import type { Kind, Txn } from '../../core/types'
-import { db, getSettings, saveSettings } from '../../db/db'
-import { addRuleFromTxn, reclassifyAll } from '../../db/importFile'
+import { db } from '../../db/db'
+import { addRuleFromTxn, markNeutralPerson } from '../../db/importFile'
 import { BASE_CATEGORIES, dayLabel, displayTitle, formatTL } from '../format'
 import type { ToastMsg } from './Toast'
 
@@ -44,11 +43,8 @@ export function TxnEditor({ txn, txns, onClose, notify }: { txn: Txn; txns: Txn[
   async function save() {
     try {
       if (neutralPerson && txn.counterparty) {
-        const s = await getSettings()
-        const cp = normTr(txn.counterparty)
-        if (!s.neutralPeople.includes(cp)) await saveSettings({ ...s, neutralPeople: [...s.neutralPeople, cp] })
-        await db.txns.update(txn.id, { userEdited: false, note: note || undefined })
-        await reclassifyAll()
+        await db.txns.update(txn.id, { note: note || undefined })
+        await markNeutralPerson(txn.counterparty)
         notify({ text: `${txn.counterparty} ile transferler artık sayılmayacak` })
         onClose()
         return

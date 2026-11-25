@@ -12,9 +12,12 @@ export function parseCardLines(lines: TextLine[]): RawTxn[] {
   const out: RawTxn[] = []
   const seen = new Map<string, number>()
   let cols: { page: number; y: number; tutarX: number; puanX: number } | undefined
+  let statement = ''
 
   for (const line of lines) {
     const items = [...line.items].sort((a, b) => a.x - b.x)
+    const kesim = items.map(i => i.str).join(' ').match(/Hesap Kesim Tarihi:?\s*(\d{2}\.\d{2}\.\d{4})/)
+    if (kesim && !statement) statement = kesim[1]
     const tutar = items.find(i => i.str.trim() === 'TUTAR')
     const puan = items.find(i => i.str.includes('MAXIPUAN'))
     if (tutar && puan) { cols = { page: line.page, y: line.y, tutarX: tutar.x, puanX: puan.x }; continue }
@@ -33,7 +36,7 @@ export function parseCardLines(lines: TextLine[]): RawTxn[] {
     const description = fixMojibake(descParts.join(' ')).replace(/\s+/g, ' ').trim()
     const amount = -parseTrAmount(amountItem.str)
     const date = parseTrDate(m[1]).date
-    const base = `card:${date}|${normTr(description)}|${amount.toFixed(2)}`
+    const base = `card:${statement ? statement + '|' : ''}${date}|${normTr(description)}|${amount.toFixed(2)}`
     const n = seen.get(base) ?? 0
     seen.set(base, n + 1)
     out.push({ id: `${base}|${n}`, source: 'kart', date, description, amount })

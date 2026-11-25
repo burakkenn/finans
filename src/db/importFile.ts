@@ -2,7 +2,7 @@ import { classify } from '../core/classify'
 import { merchantKey } from '../core/subscriptions'
 import { normTr } from '../core/text'
 import type { Kind, RawTxn, Rule, Source, Txn } from '../core/types'
-import { db, getSettings } from './db'
+import { db, getSettings, saveSettings } from './db'
 
 let persistAsked = false
 
@@ -46,7 +46,30 @@ export async function reclassifyAll(): Promise<void> {
 }
 
 export async function addRuleFromTxn(t: Txn, field: Rule['field'], kind: Kind, category: string): Promise<void> {
-  const match = field === 'counterparty' && t.counterparty ? normTr(t.counterparty) : merchantKey(t.description)
-  await db.rules.put({ id: crypto.randomUUID(), field: field === 'counterparty' && t.counterparty ? 'counterparty' : 'description', match, kind, category })
+  const ruleField: Rule['field'] = field === 'counterparty' && t.counterparty ? 'counterparty' : 'description'
+  let match = ruleField === 'counterparty' ? normTr(t.counterparty!) : merchantKey(t.description)
+  if (match.length < 3) match = normTr(t.description)
+  // A card refund marked as income must not become a rule: the key would also match the shop's purchases.
+  const unsafe = t.source === 'kart' && kind !== 'gider'
+  if (unsafe || match.length < 3) {
+    await db.txns.update(t.id, { kind, category, userEdited: true, needsReview: false })
+    return
+  }
+  await db.transaction('rw', db.rules, async () => {
+    const same = await db.rules.filter(r => r.field === ruleField && normTr(r.match) === match).primaryKeys()
+    await db.rules.bulkDelete(same)
+    await db.rules.put({ id: crypto.randomUUID(), field: ruleField, match, kind, category })
+  })
+  await db.txns.update(t.id, { userEdited: false })
+  await reclassifyAll()
+}
+
+export async function markNeutralPerson(counterparty: string): Promise<void> {
+  const cp = normTr(counterparty)
+  const s = await getSettings()
+  if (!s.neutralPeople.includes(cp)) await saveSettings({ ...s, neutralPeople: [...s.neutralPeople, cp] })
+  const theirRules = await db.rules.filter(r => r.field === 'counterparty' && normTr(r.match) === cp).primaryKeys()
+  await db.rules.bulkDelete(theirRules)
+  await db.txns.filter(t => !!t.counterparty && normTr(t.counterparty) === cp).modify({ userEdited: false })
   await reclassifyAll()
 }

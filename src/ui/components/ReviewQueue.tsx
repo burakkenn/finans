@@ -1,8 +1,7 @@
 import { useState } from 'react'
-import { normTr } from '../../core/text'
 import type { Kind, Txn } from '../../core/types'
-import { db, getSettings, saveSettings } from '../../db/db'
-import { addRuleFromTxn, reclassifyAll } from '../../db/importFile'
+import { db } from '../../db/db'
+import { addRuleFromTxn, markNeutralPerson } from '../../db/importFile'
 import { formatTL, shortDate } from '../format'
 import type { ToastMsg } from './Toast'
 import { TxnEditor } from './TxnEditor'
@@ -10,6 +9,15 @@ import { TxnEditor } from './TxnEditor'
 type Choice = { label: string; kind: Kind; category: string; neutralPerson?: boolean }
 
 function choicesFor(t: Txn): Choice[] {
+  if (t.source === 'kart' && t.amount > 0) {
+    // card refund: it reduces spending in the shop's category
+    return [
+      { label: '🍔 Yemek iadesi', kind: 'gider', category: 'Yemek & kafe' },
+      { label: '🛒 Market iadesi', kind: 'gider', category: 'Market' },
+      { label: '🛍️ Alışveriş iadesi', kind: 'gider', category: 'Alışveriş' },
+      { label: '📦 Diğer iade', kind: 'gider', category: 'Diğer' },
+    ]
+  }
   if (t.amount > 0) {
     return [
       { label: '💸 Harçlık', kind: 'gelir', category: 'Harçlık' },
@@ -43,10 +51,7 @@ function ReviewCard({ t, txns, notify }: { t: Txn; txns: Txn[]; notify: (m: Toas
   async function apply(c: Choice) {
     try {
       if (c.neutralPerson && t.counterparty && always) {
-        const s = await getSettings()
-        const cp = normTr(t.counterparty)
-        if (!s.neutralPeople.includes(cp)) await saveSettings({ ...s, neutralPeople: [...s.neutralPeople, cp] })
-        await reclassifyAll()
+        await markNeutralPerson(t.counterparty)
       } else if (always) {
         await addRuleFromTxn(t, t.counterparty ? 'counterparty' : 'description', c.kind, c.category)
       } else {

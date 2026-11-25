@@ -22,6 +22,7 @@ export function classify(t: RawTxn, rules: Rule[], s: Settings): Result {
   const type = normTr(t.bankType ?? '')
 
   for (const rule of rules) {
+    if (normTr(rule.match).length < 3) continue
     const value = rule.field === 'counterparty' ? cp : desc
     if (value && value.includes(normTr(rule.match))) return r(rule.kind, rule.category)
   }

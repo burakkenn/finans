@@ -6,6 +6,7 @@ import { db, saveSettings } from '../../db/db'
 import { importFile, reclassifyAll } from '../../db/importFile'
 import { ReviewQueue } from '../components/ReviewQueue'
 import { categoriesFor } from '../components/TxnEditor'
+import { parseAmountInput } from '../format'
 import type { ScreenProps } from '../shared'
 
 const todayIso = () => {
@@ -38,7 +39,7 @@ function ManualAdd({ txns, notify }: Pick<ScreenProps, 'txns' | 'notify'>) {
   const cats = categoriesFor(kind, txns)
 
   async function add() {
-    const n = Number(amount.replace(/\./g, '').replace(',', '.'))
+    const n = parseAmountInput(amount)
     if (!n || n <= 0) { notify({ text: 'Tutarı yaz', error: true }); return }
     await db.txns.add({
       id: `elle:${crypto.randomUUID()}`, source: 'elle', date, description: note.trim() || category,

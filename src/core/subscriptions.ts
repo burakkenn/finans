@@ -9,7 +9,8 @@ export function merchantKey(description: string): string {
   const out: string[] = []
   for (const tok of tokens) {
     const m = tok.match(CITY_RE)
-    if (m) {
+    const isCity = m && /^(TR|TU|GB|NL|IE)?$/.test(tok.slice(m.index! + m[0].length))
+    if (m && isCity && out.length > 0) {
       const before = tok.slice(0, m.index)
       if (before) out.push(before)
       break

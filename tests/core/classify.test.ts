@@ -59,3 +59,10 @@ describe('classify', () => {
     expect(c(acc({ amount: 5274, bankType: 'FAST', description: 'X ÖDEME KURULUŞU*0015*Transfer' , counterparty: undefined }))).toEqual({ kind: 'gelir', category: 'Diğer gelir', needsReview: true })
   })
 })
+
+describe('classify rule safety (review C1)', () => {
+  it('ignores a rule with an empty match', () => {
+    const bad: Rule = { id: 'r', field: 'description', match: '', kind: 'gelir', category: 'Diğer gelir' }
+    expect(c(acc({ amount: -1500.25, bankType: 'Para Çekme', description: 'X KRE.KART BORÇ ÖDEME' }), [bad])).toMatchObject({ kind: 'notr', category: 'Kart ödemesi' })
+  })
+})

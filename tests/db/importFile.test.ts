@@ -1,7 +1,7 @@
 import 'fake-indexeddb/auto'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { db, saveSettings } from '../../src/db/db'
-import { addRuleFromTxn, importFile } from '../../src/db/importFile'
+import { addRuleFromTxn, importFile, markNeutralPerson } from '../../src/db/importFile'
 import { makeXls } from '../helpers/makeXls'
 
 const rows = [
@@ -43,5 +43,44 @@ describe('importFile', () => {
     await addRuleFromTxn(t, 'counterparty', 'gelir', 'Harçlık')
     const other = (await db.txns.get('acc:R3:3000.00'))!
     expect(other).toMatchObject({ kind: 'gelir', category: 'Harçlık', needsReview: false })
+  })
+})
+
+describe('rule learning safety (review C1, C2, I1)', () => {
+  const cardTxn = (id: string, description: string, amount: number) => ({
+    id, source: 'kart' as const, date: '2026-11-01', description, amount, kind: 'gider' as const, category: 'Diğer', needsReview: true, userEdited: false,
+  })
+  it('a rule never gets an empty or tiny match', async () => {
+    const t = cardTxn('c1', 'ISTANBUL TR', -50)
+    await db.txns.put(t)
+    await addRuleFromTxn(t, 'description', 'gider', 'Ulaşım')
+    const rules = await db.rules.toArray()
+    expect(rules.every(r => r.match.length >= 3)).toBe(true)
+  })
+  it('choosing income for a card refund does not create a rule that flips purchases', async () => {
+    const refund = cardTxn('c2', 'İADE/FOOSHOP.COM', 100)
+    const buy = cardTxn('c3', 'FOOSHOP.COM ISTANBUL TR', -100)
+    await db.txns.bulkPut([refund, buy])
+    await addRuleFromTxn(refund, 'description', 'gelir', 'Diğer gelir')
+    expect((await db.txns.get('c3'))?.kind).toBe('gider')
+    expect(await db.rules.count()).toBe(0)
+    expect((await db.txns.get('c2'))).toMatchObject({ kind: 'gelir', userEdited: true, needsReview: false })
+  })
+  it('re-teaching the same merchant replaces the old rule', async () => {
+    const t = cardTxn('c4', 'MIGROS ISTANBUL TR', -100)
+    await db.txns.put(t)
+    await addRuleFromTxn(t, 'description', 'gider', 'Market')
+    await addRuleFromTxn(t, 'description', 'gider', 'Yemek & kafe')
+    const rules = await db.rules.toArray()
+    expect(rules.length).toBe(1)
+    expect((await db.txns.get('c4'))?.category).toBe('Yemek & kafe')
+  })
+  it('marking a person neutral removes their earlier rule', async () => {
+    await importFile(file())
+    const t = (await db.txns.get('acc:R2:15000.00'))!
+    await addRuleFromTxn(t, 'counterparty', 'gelir', 'Harçlık')
+    await markNeutralPerson('AYŞE YILMAZ')
+    expect(await db.rules.count()).toBe(0)
+    expect((await db.txns.get('acc:R3:3000.00'))).toMatchObject({ kind: 'notr', category: 'Kişiler' })
   })
 })
