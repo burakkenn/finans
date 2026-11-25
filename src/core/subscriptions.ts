@@ -1,4 +1,5 @@
 import { normTr } from './text'
+import { inPeriod, type Period } from './periods'
 import type { Subscription, Txn } from './types'
 
 const CITY_RE = /(ISTANBUL|ANKARA|IZMIR|LONDON|AMSTERDAM|DUBLIN|LUXEMBOURG)/
@@ -62,7 +63,7 @@ export interface SubscriptionRow {
   chargedAfterCancel: boolean
 }
 
-export function subscriptionView(txns: Txn[], subs: Subscription[], m: string): SubscriptionRow[] {
+export function subscriptionView(txns: Txn[], subs: Subscription[], period: Pick<Period, 'start' | 'end'>): SubscriptionRow[] {
   const saved = new Map(subs.map(s => [s.key, s]))
   const keys = new Set([...detectSubscriptionKeys(txns), ...subs.filter(s => !s.excluded).map(s => s.key)])
   const rows: SubscriptionRow[] = []
@@ -70,7 +71,7 @@ export function subscriptionView(txns: Txn[], subs: Subscription[], m: string): 
     const sub = saved.get(key)
     if (sub?.excluded) continue
     const all = txns.filter(t => t.kind === 'gider' && t.amount < 0 && merchantKey(t.description) === key)
-    const payments = all.filter(t => month(t.date) === m).sort((a, b) => a.date.localeCompare(b.date))
+    const payments = all.filter(t => inPeriod(t.date, period)).sort((a, b) => a.date.localeCompare(b.date))
       .map(t => ({ id: t.id, date: t.date, amount: -t.amount, label: sub?.paymentLabels[(-t.amount).toFixed(2)] }))
     rows.push({
       key,

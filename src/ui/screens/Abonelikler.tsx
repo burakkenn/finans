@@ -2,9 +2,9 @@ import { useMemo, useState } from 'react'
 import { subscriptionView, type SubscriptionRow } from '../../core/subscriptions'
 import type { Subscription } from '../../core/types'
 import { db } from '../../db/db'
-import { MonthPicker } from '../components/MonthPicker'
+import { PeriodPicker } from '../components/PeriodPicker'
 import { Sheet } from '../components/TxnEditor'
-import { formatTL, shortDate } from '../format'
+import { formatTL, rangeLabel, shortDate } from '../format'
 import type { ScreenProps } from '../shared'
 
 const today = () => {
@@ -17,12 +17,12 @@ async function saveSub(subs: Subscription[], row: SubscriptionRow, patch: Partia
   await db.subs.put({ ...cur, ...patch })
 }
 
-export function Abonelikler({ txns, subs, month, months, setMonth, notify }: ScreenProps) {
-  const rows = useMemo(() => (month ? subscriptionView(txns, subs, month) : []), [txns, subs, month])
+export function Abonelikler({ txns, subs, period, periods, setPeriod, notify }: ScreenProps) {
+  const rows = useMemo(() => (period ? subscriptionView(txns, subs, period) : []), [txns, subs, period])
   const [open, setOpen] = useState<string>()
   const [labeling, setLabeling] = useState<{ row: SubscriptionRow; amount: number; label: string }>()
 
-  if (!month) return <><h1 className="title">Abonelikler</h1><p className="muted empty">Önce bir ekstre yükle.</p></>
+  if (!period) return <><h1 className="title">Abonelikler</h1><p className="muted empty">Önce bir ekstre yükle.</p></>
 
   const active = rows.filter(r => !r.cancelled && r.monthTotal > 0)
   const quiet = rows.filter(r => !r.cancelled && r.monthTotal === 0)
@@ -37,7 +37,7 @@ export function Abonelikler({ txns, subs, month, months, setMonth, notify }: Scr
           <div className="logo" style={r.cancelled ? { opacity: .5 } : undefined}>{r.name[0]}</div>
           <div className="grow">
             <div style={r.cancelled ? { textDecoration: 'line-through', color: '#8A90A2' } : undefined}>{r.name}</div>
-            <div className="small muted">{r.payments.length ? `${r.payments.length} ödeme bu ay` : 'Bu ay ödeme yok'}</div>
+            <div className="small muted">{r.payments.length ? `${r.payments.length} ödeme bu dönem` : 'Bu dönem ödeme yok'}</div>
           </div>
           <b className="money">{formatTL(r.monthTotal)}</b>
           <span className="muted">{isOpen ? '▴' : '▾'}</span>
@@ -71,15 +71,15 @@ export function Abonelikler({ txns, subs, month, months, setMonth, notify }: Scr
     <>
       <div className="row">
         <h1 className="title">Abonelikler</h1>
-        <MonthPicker month={month} months={months} setMonth={setMonth} />
+        <PeriodPicker period={period} periods={periods} setPeriod={setPeriod} />
       </div>
       <div className="hero" style={{ marginTop: 0 }}>
-        <div className="k">Bu ay aboneliklere giden</div>
+        <div className="row"><span className="k">Bu dönem aboneliklere giden</span><span className="k" style={{ fontWeight: 500 }}>{rangeLabel(period)}</span></div>
         <div className="v money" style={{ marginBottom: 0 }}>{formatTL(total)}</div>
       </div>
 
       {active.length > 0 && <div className="card"><h3>Aktif</h3>{active.map(r => <Row key={r.key} r={r} />)}</div>}
-      {quiet.length > 0 && <div className="card"><h3>Bu ay çekim olmayanlar</h3>{quiet.map(r => <Row key={r.key} r={r} />)}</div>}
+      {quiet.length > 0 && <div className="card"><h3>Bu dönem çekim olmayanlar</h3>{quiet.map(r => <Row key={r.key} r={r} />)}</div>}
       {cancelled.length > 0 && <div className="card"><h3 className="muted">İptal edilenler</h3>{cancelled.map(r => <Row key={r.key} r={r} />)}</div>}
       {rows.length === 0 && <p className="muted empty">Henüz abonelik bulunamadı.</p>}
       <p className="muted small" style={{ padding: '12px 4px' }}>

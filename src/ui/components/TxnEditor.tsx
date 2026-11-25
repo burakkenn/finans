@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { periodAnchorIds } from '../../core/periods'
 import type { Kind, Txn } from '../../core/types'
 import { db } from '../../db/db'
 import { addRuleFromTxn, markNeutralPerson } from '../../db/importFile'
@@ -32,6 +33,8 @@ export function TxnEditor({ txn, txns, onClose, notify }: { txn: Txn; txns: Txn[
   const [note, setNote] = useState(txn.note ?? '')
   const [always, setAlways] = useState(false)
   const [neutralPerson, setNeutralPerson] = useState(false)
+  const wasAnchor = useMemo(() => periodAnchorIds(txns).has(txn.id), [txns, txn.id])
+  const [startsPeriod, setStartsPeriod] = useState(wasAnchor)
   const cats = categoriesFor(kind, txns)
 
   function pickKind(k: Kind) {
@@ -50,7 +53,10 @@ export function TxnEditor({ txn, txns, onClose, notify }: { txn: Txn; txns: Txn[
         return
       }
       const finalCat = category === '__new' ? newCat.trim() || 'Diğer' : category
-      await db.txns.update(txn.id, { kind, category: finalCat, note: note || undefined, userEdited: true, needsReview: false })
+      await db.txns.update(txn.id, {
+        kind, category: finalCat, note: note || undefined, userEdited: true, needsReview: false,
+        ...(startsPeriod !== wasAnchor ? { periodStart: startsPeriod } : {}),
+      })
       if (always) {
         await addRuleFromTxn(txn, txn.counterparty ? 'counterparty' : 'description', kind, finalCat)
         notify({ text: 'Kaydedildi, benzerleri de güncellendi' })
@@ -99,6 +105,11 @@ export function TxnEditor({ txn, txns, onClose, notify }: { txn: Txn; txns: Txn[
       {!neutralPerson && (
         <label className="check"><input type="checkbox" checked={always} onChange={e => setAlways(e.target.checked)} />
           {txn.counterparty ? `${txn.counterparty} için bundan sonra hep böyle yap` : 'Bu işyeri için bundan sonra hep böyle yap'}
+        </label>
+      )}
+      {!neutralPerson && kind === 'gelir' && txn.amount > 0 && (
+        <label className="check"><input type="checkbox" checked={startsPeriod} onChange={e => setStartsPeriod(e.target.checked)} />
+          Yeni dönem başlatsın (aylık asıl harçlık)
         </label>
       )}
       {txn.counterparty && (

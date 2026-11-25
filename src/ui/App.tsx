@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useMemo, useState } from 'react'
-import { monthsWithData } from '../core/summary'
+import { computePeriods } from '../core/periods'
 import { db, getSettings } from '../db/db'
 import { Nav, type Tab } from './Nav'
 import { Abonelikler } from './screens/Abonelikler'
@@ -9,24 +9,26 @@ import { Hareketler } from './screens/Hareketler'
 import { Ozet } from './screens/Ozet'
 import { Toast, type ToastMsg } from './components/Toast'
 
+function todayIso(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 export function App() {
   const [tab, setTab] = useState<Tab>('ozet')
   const txns = useLiveQuery(() => db.txns.toArray(), [])
   const subs = useLiveQuery(() => db.subs.toArray(), [])
   const settings = useLiveQuery(() => getSettings(), [])
-  const months = useMemo(() => monthsWithData(txns ?? []), [txns])
-  const [month, setMonth] = useState<string>()
+  const periods = useMemo(() => computePeriods(txns ?? [], todayIso()), [txns])
+  const [periodStart, setPeriodStart] = useState<string>()
+  const period = periods.find(p => p.start === periodStart) ?? periods[0]
   const [toast, setToast] = useState<ToastMsg>()
-
-  useEffect(() => {
-    if (!month || !months.includes(month)) setMonth(months[0])
-  }, [months, month])
 
   useEffect(() => { window.scrollTo(0, 0) }, [tab])
 
   if (!txns || !subs || !settings) return <div className="app" />
 
-  const shared = { txns, subs, settings, month, months, setMonth, goto: setTab, notify: setToast }
+  const shared = { txns, subs, settings, period, periods, setPeriod: setPeriodStart, goto: setTab, notify: setToast }
   return (
     <>
       <div className="app">

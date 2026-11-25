@@ -7,6 +7,8 @@ const t = (date: string, description: string, amount: number, category = 'Diğer
   id: `t${i++}`, source: 'kart', date, description, amount, kind: 'gider', category, needsReview: false, userEdited: false,
 })
 
+const NOV = { start: '2026-11-01', end: '2026-11-30' }
+
 const apple = [
   t('2026-10-24', 'APPLE.COM/BILL APPLE.COM/BIL IE', -169.99, 'Abonelik'),
   t('2026-10-24', 'APPLE.COM/BILL APPLE.COM/BIL IE', -99.99, 'Abonelik'),
@@ -45,7 +47,7 @@ describe('subscriptions', () => {
     expect(detectSubscriptionKeys(r)).toEqual([])
   })
   it('lists each November Apple payment with date and amount', () => {
-    const v = subscriptionView(apple, [], '2026-11')
+    const v = subscriptionView(apple, [], NOV)
     expect(v.length).toBe(1)
     expect(v[0].name).toBe('Apple')
     expect(v[0].payments.map(p => [p.date, p.amount])).toEqual([['2026-11-08', 65], ['2026-11-12', 84.99], ['2026-11-13', 499.99]])
@@ -53,15 +55,15 @@ describe('subscriptions', () => {
   })
   it('shows a saved label for a payment amount', () => {
     const subs: Subscription[] = [{ key: 'APPLE.COM/BILL', name: 'Apple', cancelled: false, paymentLabels: { '65.00': 'iCloud' } }]
-    expect(subscriptionView(apple, subs, '2026-11')[0].payments[0].label).toBe('iCloud')
+    expect(subscriptionView(apple, subs, NOV)[0].payments[0].label).toBe('iCloud')
   })
   it('flags a charge after cancellation', () => {
     const subs: Subscription[] = [{ key: 'APPLE.COM/BILL', name: 'Apple', cancelled: true, cancelledAt: '2026-11-10', paymentLabels: {} }]
-    expect(subscriptionView(apple, subs, '2026-11')[0].chargedAfterCancel).toBe(true)
+    expect(subscriptionView(apple, subs, NOV)[0].chargedAfterCancel).toBe(true)
   })
   it('hides excluded keys', () => {
     const subs: Subscription[] = [{ key: 'APPLE.COM/BILL', name: 'Apple', cancelled: false, excluded: true, paymentLabels: {} }]
-    expect(subscriptionView(apple, subs, '2026-11')).toEqual([])
+    expect(subscriptionView(apple, subs, NOV)).toEqual([])
   })
 })
 

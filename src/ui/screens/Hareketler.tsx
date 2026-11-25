@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react'
 import { normTr } from '../../core/text'
 import type { Txn } from '../../core/types'
-import { MonthPicker } from '../components/MonthPicker'
+import { inPeriod } from '../../core/periods'
+import { PeriodPicker } from '../components/PeriodPicker'
 import { TxnEditor } from '../components/TxnEditor'
-import { dayLabel, displayTitle, emojiFor, formatTL } from '../format'
+import { dayLabel, displayTitle, emojiFor, formatTL, rangeLabel } from '../format'
 import type { ScreenProps } from '../shared'
 
 type Filter = 'hepsi' | 'gider' | 'gelir' | 'notr' | 'sor'
@@ -13,7 +14,7 @@ const FILTERS: { id: Filter; label: string }[] = [
 ]
 const SOURCE: Record<Txn['source'], string> = { kart: 'Kart', vadesiz: 'Hesap', vadeli: 'Birikim', elle: 'Elle' }
 
-export function Hareketler({ txns, month, months, setMonth, notify }: ScreenProps) {
+export function Hareketler({ txns, period, periods, setPeriod, notify }: ScreenProps) {
   const [q, setQ] = useState('')
   const [filter, setFilter] = useState<Filter>('hepsi')
   const [editing, setEditing] = useState<Txn>()
@@ -21,21 +22,22 @@ export function Hareketler({ txns, month, months, setMonth, notify }: ScreenProp
   const groups = useMemo(() => {
     const nq = normTr(q)
     const list = txns
-      .filter(t => (nq ? true : month ? t.date.startsWith(month) : true))
+      .filter(t => (nq ? true : period ? inPeriod(t.date, period) : true))
       .filter(t => !nq || normTr(`${t.description} ${t.counterparty ?? ''} ${t.category} ${t.note ?? ''}`).includes(nq))
       .filter(t => filter === 'hepsi' || (filter === 'sor' ? t.needsReview : t.kind === filter))
       .sort((a, b) => (b.date + (b.time ?? '')).localeCompare(a.date + (a.time ?? '')))
     const byDay = new Map<string, Txn[]>()
     for (const t of list) byDay.set(t.date, [...(byDay.get(t.date) ?? []), t])
     return [...byDay]
-  }, [txns, month, q, filter])
+  }, [txns, period, q, filter])
 
   return (
     <>
       <div className="row">
         <h1 className="title">Hareketler</h1>
-        {month && <MonthPicker month={month} months={months} setMonth={setMonth} />}
+        {period && <PeriodPicker period={period} periods={periods} setPeriod={setPeriod} />}
       </div>
+      {period && !q && <p className="muted small" style={{ margin: '-6px 4px 10px' }}>{rangeLabel(period)}</p>}
       <input className="search" placeholder={q ? '' : 'Ara (tüm aylarda)…'} value={q} onChange={e => setQ(e.target.value)} />
       <div className="chips">
         {FILTERS.map(f => <button key={f.id} className={filter === f.id ? 'on' : ''} onClick={() => setFilter(f.id)}>{f.label}</button>)}

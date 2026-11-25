@@ -1,18 +1,18 @@
 import { useMemo, useState } from 'react'
-import { monthSummary } from '../../core/summary'
+import { periodSummary } from '../../core/summary'
 import { subscriptionView } from '../../core/subscriptions'
-import { MonthPicker } from '../components/MonthPicker'
-import { emojiFor, formatTL, shortDate } from '../format'
+import { PeriodPicker } from '../components/PeriodPicker'
+import { emojiFor, formatTL, rangeLabel, shortDate } from '../format'
 import type { ScreenProps } from '../shared'
 
 const BAR_COLORS = ['#FF8A65', '#4DB6AC', '#7986CB', '#FFB74D', '#BA68C8', '#4FC3F7', '#AED581', '#F06292', '#90A4AE', '#A1887F']
 
-export function Ozet({ txns, subs, settings, month, months, setMonth, goto }: ScreenProps) {
+export function Ozet({ txns, subs, settings, period, periods, setPeriod, goto }: ScreenProps) {
   const [showPeople, setShowPeople] = useState(false)
-  const s = useMemo(() => (month ? monthSummary(txns, month) : undefined), [txns, month])
-  const subRows = useMemo(() => (month ? subscriptionView(txns, subs, month) : []), [txns, subs, month])
+  const s = useMemo(() => (period ? periodSummary(txns, period) : undefined), [txns, period])
+  const subRows = useMemo(() => (period ? subscriptionView(txns, subs, period) : []), [txns, subs, period])
 
-  if (!month || !s) {
+  if (!period || !s) {
     return (
       <div className="empty">
         <div className="big">📄</div>
@@ -27,21 +27,37 @@ export function Ozet({ txns, subs, settings, month, months, setMonth, goto }: Sc
   const subTotal = activeSubs.reduce((a, r) => a + r.monthTotal, 0)
   const maxCat = Math.max(...s.byCategory.map(c => c.amount), 1)
   const firstName = settings.ownerName.split(' ')[0]
+  const spentPct = s.gelir > 0 ? Math.round((s.gider / s.gelir) * 100) : undefined
+  const barColor = spentPct === undefined ? '#8A90A2' : spentPct < 80 ? '#2E9D63' : spentPct < 100 ? '#F2A33A' : '#D9534F'
+  const lastCard = txns.filter(t => t.source === 'kart').reduce((m, t) => (t.date > m ? t.date : m), '')
+  const periodEnd = period.end ?? new Date().toISOString().slice(0, 10)
+  const cardBehind = lastCard && lastCard < periodEnd ? lastCard : ''
 
   return (
     <>
       <div className="row">
         <span className="muted small">{firstName ? `Merhaba ${firstName}` : 'Merhaba'}</span>
-        <MonthPicker month={month} months={months} setMonth={setMonth} />
+        <PeriodPicker period={period} periods={periods} setPeriod={setPeriod} />
       </div>
 
       <div className="hero">
-        <div className="k">Bu ay elinde kalan</div>
+        <div className="row"><span className="k">Bu dönem elinde kalan</span><span className="k" style={{ fontWeight: 500 }}>{rangeLabel(period)}</span></div>
         <div className="v money">{formatTL(s.kalan, true)}</div>
         <div className="row">
           <div className="pill"><div className="k">Gelir</div><div className="v money pos">{formatTL(s.gelir)}</div></div>
           <div className="pill"><div className="k">Gider</div><div className="v money neg">{formatTL(s.gider)}</div></div>
         </div>
+        {spentPct !== undefined && (
+          <div style={{ marginTop: 14 }}>
+            <div className="bar" style={{ background: 'rgba(27,46,94,.12)', height: 10 }}>
+              <i style={{ width: `${Math.min(100, Math.max(0, spentPct))}%`, background: barColor }} />
+            </div>
+            <div className="k" style={{ marginTop: 6, fontWeight: 500 }}>Gelirin %{spentPct} kadarı harcandı</div>
+          </div>
+        )}
+        {cardBehind && (
+          <div className="k" style={{ marginTop: 8, fontWeight: 500 }}>💳 Kart harcamaları {shortDate(cardBehind)} tarihine kadar yüklü</div>
+        )}
       </div>
 
       {s.reviewCount > 0 && (
@@ -68,7 +84,7 @@ export function Ozet({ txns, subs, settings, month, months, setMonth, goto }: Sc
         <div className="card">
           <div className="row" style={{ marginBottom: 8 }}>
             <h3>Abonelikler</h3>
-            <span className="chip">aylık ~{formatTL(subTotal)}</span>
+            <span className="chip">bu dönem {formatTL(subTotal)}</span>
           </div>
           {activeSubs.slice(0, 3).map(r => (
             <button className="list-row" key={r.key} onClick={() => goto('abonelikler')}>

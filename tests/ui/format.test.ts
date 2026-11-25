@@ -45,3 +45,11 @@ describe('parseAmountInput (review I2)', () => {
     expect(parseAmountInput('300')).toBe(300)
   })
 })
+
+import { rangeLabel } from '../../src/ui/format'
+describe('rangeLabel', () => {
+  it('shows closed and open periods', () => {
+    expect(rangeLabel({ start: '2026-10-17', end: '2026-11-19' })).toBe('17 Eki – 19 Kas')
+    expect(rangeLabel({ start: '2026-11-20' })).toBe('20 Kas – devam ediyor')
+  })
+})

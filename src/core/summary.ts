@@ -1,7 +1,7 @@
+import { inPeriod, type Period } from './periods'
 import type { Txn } from './types'
 
-export interface MonthSummary {
-  month: string
+export interface PeriodSummary {
   gelir: number
   gider: number
   kalan: number
@@ -13,8 +13,8 @@ export interface MonthSummary {
 
 const r2 = (n: number) => Math.round(n * 100) / 100
 
-export function monthSummary(txns: Txn[], month: string): MonthSummary {
-  const inMonth = txns.filter(t => t.date.startsWith(month))
+export function periodSummary(txns: Txn[], period: Pick<Period, 'start' | 'end'>): PeriodSummary {
+  const inMonth = txns.filter(t => inPeriod(t.date, period))
   let gelir = 0, gider = 0, brut = 0, stopaj = 0
   const cats = new Map<string, number>()
   for (const t of inMonth) {
@@ -29,7 +29,6 @@ export function monthSummary(txns: Txn[], month: string): MonthSummary {
   const byCategory = [...cats].map(([category, amount]) => ({ category, amount: r2(amount) }))
     .filter(c => c.amount !== 0).sort((a, b) => b.amount - a.amount)
   return {
-    month,
     gelir: r2(gelir),
     gider: r2(gider),
     kalan: r2(gelir - gider),
@@ -38,8 +37,4 @@ export function monthSummary(txns: Txn[], month: string): MonthSummary {
     kisiler: inMonth.filter(t => t.kind === 'notr' && t.category === 'Kişiler'),
     reviewCount: txns.filter(t => t.needsReview).length,
   }
-}
-
-export function monthsWithData(txns: Txn[]): string[] {
-  return [...new Set(txns.map(t => t.date.slice(0, 7)))].sort().reverse()
 }

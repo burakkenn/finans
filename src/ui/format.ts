@@ -54,3 +54,7 @@ export function parseAmountInput(s: string): number {
   if (/^\d+\.\d{1,2}$/.test(v)) return Number(v)
   return Number(v.replace(/\./g, ''))
 }
+
+export function rangeLabel(p: { start: string; end?: string }): string {
+  return `${shortDate(p.start)} – ${p.end ? shortDate(p.end) : 'devam ediyor'}`
+}

@@ -22,6 +22,8 @@ export interface Txn extends RawTxn {
   needsReview: boolean
   userEdited: boolean
   note?: string
+  /** true = always starts a period, false = never (overrides the automatic choice) */
+  periodStart?: boolean
 }
 
 export interface Rule {

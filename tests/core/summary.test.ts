@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { monthSummary, monthsWithData } from '../../src/core/summary'
+import { periodSummary } from '../../src/core/summary'
 import type { Kind, Txn } from '../../src/core/types'
 
 let i = 0
@@ -20,7 +20,7 @@ const txns = [
 ]
 
 describe('monthSummary', () => {
-  const s = monthSummary(txns, '2026-11')
+  const s = periodSummary(txns, { start: '2026-11-01', end: '2026-11-30' })
   it('sums income including net interest', () => {
     expect(s.gelir).toBeCloseTo(3031.17, 2)
   })
@@ -40,7 +40,8 @@ describe('monthSummary', () => {
     expect(s.kisiler.map(x => x.amount)).toEqual([-500])
     expect(s.reviewCount).toBe(1)
   })
-  it('lists months newest first', () => {
-    expect(monthsWithData(txns)).toEqual(['2026-11', '2026-10'])
+  it('respects an open-ended period', () => {
+    expect(periodSummary(txns, { start: '2026-11-07' }).gelir).toBeCloseTo(3031.17, 2)
+    expect(periodSummary(txns, { start: '2026-11-07' }).gider).toBe(0)
   })
 })
