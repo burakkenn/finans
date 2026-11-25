@@ -1,27 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import * as XLSX from 'xlsx'
 import { parseAccountXls } from '../../src/core/parseAccount'
-
-function makeXls(product: string, withEkHesap: boolean, rows: (string | number)[][]): ArrayBuffer {
-  const head = withEkHesap
-    ? ['Tarih/Saat', 'Valör', 'Kanal/Şube', 'İşlem Tutarı*', 'Bakiye', 'Ek Hesap\nBakiyesi', 'İşlem', 'İşlem Tipi', 'Açıklama', '', '', '', '', 'Referans']
-    : ['Tarih/Saat', 'Valör', 'Kanal/Şube', 'İşlem Tutarı*', 'Bakiye', 'İşlem', 'İşlem Tipi', 'Açıklama', '', '', '', '', '', 'Referans']
-  const aoa = [
-    ['HESAP ÖZETİ'],
-    ['', '', 'Sayın TEST KİŞİ'],
-    ['', '', 'Ürün-Döviz Tipi:', '', product],
-    [],
-    head,
-    ...rows,
-    [],
-    ["(*) Çekilen tutar '-' ile gösterilmiştir."],
-  ]
-  const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), 'S')
-  const out = XLSX.write(wb, { bookType: 'biff8', type: 'array' }) as ArrayBuffer
-  return out
-}
+import { makeXls } from '../helpers/makeXls'
 
 const vadesizRows = [
   ['24/11/2026-16:45:15', '24/11/2026', 'Sistem', 330, 330, 0, 'FA', 'FAST', 'ALİ VELİ*0010**123*FAST', '', '', '', '', 'R1'],
