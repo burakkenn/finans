@@ -6,6 +6,7 @@ import { db, saveSettings } from '../../db/db'
 import { importFile, reclassifyAll } from '../../db/importFile'
 import { ReviewQueue } from '../components/ReviewQueue'
 import { categoriesFor } from '../components/TxnEditor'
+import { clearErrors, readErrors } from '../errorLog'
 import { parseAmountInput } from '../format'
 import type { ScreenProps } from '../shared'
 
@@ -67,6 +68,25 @@ function ManualAdd({ txns, notify }: Pick<ScreenProps, 'txns' | 'notify'>) {
       </label>
       <label className="field">Not<input value={note} onChange={e => setNote(e.target.value)} placeholder="ör. simit" /></label>
       <button className="btn block" style={{ marginTop: 14 }} onClick={add}>Ekle</button>
+    </div>
+  )
+}
+
+function ErrorLogCard() {
+  const [errors, setErrors] = useState(readErrors)
+  if (!errors.length) return null
+  return (
+    <div className="card">
+      <h3>🐞 Hata kaydı</h3>
+      <p className="muted small">Uygulama bir hata yaşadı. Bu kartın ekran görüntüsünü Claude'a gönderirsen düzeltebilir.</p>
+      {errors.slice(0, 3).map(e => (
+        <div key={e.at} className="small" style={{ marginTop: 10, wordBreak: 'break-word' }}>
+          <b>{e.where} · {e.at.slice(0, 16).replace('T', ' ')}</b>
+          <div>{e.message}</div>
+          <div className="muted" style={{ fontSize: 11, whiteSpace: 'pre-wrap', maxHeight: 120, overflow: 'auto' }}>{e.stack}</div>
+        </div>
+      ))}
+      <button className="btn ghost small" style={{ marginTop: 10 }} onClick={() => { clearErrors(); setErrors([]) }}>Kaydı temizle</button>
     </div>
   )
 }
@@ -183,6 +203,7 @@ export function Ayarlar({ txns, settings, notify }: ScreenProps) {
           ))}
         </div>
       </div>
+      <ErrorLogCard />
       <p className="muted small" style={{ textAlign: 'center', padding: 16 }}>Finans · veriler sadece bu cihazda</p>
     </>
   )
