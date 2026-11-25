@@ -40,7 +40,7 @@ export function detectSubscriptionKeys(txns: Txn[]): string[] {
     if (t.kind !== 'gider' || t.amount >= 0) continue
     const k = merchantKey(t.description)
     if (t.category === 'Abonelik') keys.add(k)
-    if (t.source !== 'kart') continue
+    if (t.source !== 'kart' || (t.category !== 'Diğer' && t.category !== 'Abonelik')) continue
     byKey.set(k, [...(byKey.get(k) ?? []), t])
   }
   for (const [k, list] of byKey) {

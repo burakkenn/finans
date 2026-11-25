@@ -35,8 +35,11 @@ describe('classify', () => {
   it('neutral person transfers are not counted', () => {
     expect(c(acc({ amount: -500, bankType: 'FAST', counterparty: 'CAN TEST' }))).toMatchObject({ kind: 'notr', category: 'Kişiler' })
   })
-  it('other person transfers default to friend settle-up and ask the user', () => {
-    expect(c(acc({ amount: 400, bankType: 'FAST', counterparty: 'MEHMET X' }))).toEqual({ kind: 'gider', category: 'Arkadaşlarla ödeşme', needsReview: true })
+  it('money sent to a person defaults to friend settle-up and asks the user', () => {
+    expect(c(acc({ amount: -400, bankType: 'FAST', counterparty: 'MEHMET X' }))).toEqual({ kind: 'gider', category: 'Arkadaşlarla ödeşme', needsReview: true })
+  })
+  it('unconfirmed money from a person counts as income until the user says it was a repayment', () => {
+    expect(c(acc({ amount: 15000, bankType: 'Havale', counterparty: 'MEHMET X' }))).toEqual({ kind: 'gelir', category: 'Diğer gelir', needsReview: true })
   })
   it('card refund counts against the merchant category', () => {
     expect(c(card('İADE/IYZICO/TIKLAGELSIN.COM', 549))).toEqual({ kind: 'gider', category: 'Yemek & kafe', needsReview: false })

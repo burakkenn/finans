@@ -36,6 +36,10 @@ describe('subscriptions', () => {
     const r = [t('2026-09-05', 'FOO MUSIC ISTANBUL TR', -59.99), t('2026-10-05', 'FOO MUSIC ISTANBUL TR', -59.99)]
     expect(detectSubscriptionKeys(r)).toEqual(['FOO MUSIC'])
   })
+  it('does not guess subscriptions inside known everyday categories', () => {
+    const r = [t('2026-10-19', 'VERSAY KUMAŞ BASKI GIDAİSTANBUL TR', -330, 'Market'), t('2026-11-03', 'VERSAY KUMAŞ BASKI GIDAİSTANBUL TR', -330, 'Market')]
+    expect(detectSubscriptionKeys(r)).toEqual([])
+  })
   it('does not treat a frequent cafe with varying amounts as a subscription', () => {
     const r = [t('2026-09-05', 'MİLENA CAFE İSTANBULTR', -240), t('2026-10-05', 'MİLENA CAFE İSTANBULTR', -440)]
     expect(detectSubscriptionKeys(r)).toEqual([])

@@ -35,7 +35,7 @@ export function classify(t: RawTxn, rules: Rule[], s: Settings): Result {
   if (/\bATM\b/.test(desc) && t.amount < 0) return r('notr', 'Nakit')
   if (desc.startsWith('ÜCRET')) return r('gider', 'Banka ücreti')
   if (cp && s.neutralPeople.map(normTr).includes(cp)) return r('notr', 'Kişiler')
-  if (cp) return r('gider', 'Arkadaşlarla ödeşme', true)
+  if (cp) return t.amount > 0 ? r('gelir', 'Diğer gelir', true) : r('gider', 'Arkadaşlarla ödeşme', true)
 
   if (t.source === 'kart') {
     const key = desc.replace(/^IADE\//, '')
