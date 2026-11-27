@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { periodAnchorIds } from '../../core/periods'
 import type { Kind, Txn } from '../../core/types'
 import { db } from '../../db/db'
@@ -10,13 +11,15 @@ const NEUTRAL_CATS = ['Kişiler', 'Kendi hesaplarım', 'Kart ödemesi', 'Nakit']
 const KIND_LABEL: Record<Kind, string> = { gider: 'Gider', gelir: 'Gelir', notr: 'Sayılmasın' }
 
 export function Sheet({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
-  return (
-    <div className="sheet-bg" onClick={onClose}>
+  // portal: fixed overlays must not live inside the animated/transformed page
+  return createPortal(
+    <div className="sheet-bg" onClick={onClose} data-noswipe>
       <div className="sheet" onClick={e => e.stopPropagation()}>
         <div className="handle" />
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
 

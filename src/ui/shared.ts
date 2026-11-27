@@ -12,4 +12,8 @@ export interface ScreenProps {
   setPeriod: (start: string) => void
   goto: (t: Tab) => void
   notify: (m: ToastMsg) => void
+  openReview: () => void
+  catFilter: string | undefined
+  /** open Hareketler filtered by category (undefined clears the filter) */
+  showCategory: (c?: string) => void
 }

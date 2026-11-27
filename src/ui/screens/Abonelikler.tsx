@@ -32,11 +32,11 @@ export function Abonelikler({ txns, subs, period, periods, setPeriod, notify }: 
   const Row = ({ r }: { r: SubscriptionRow }) => {
     const isOpen = open === r.key
     return (
-      <div style={{ borderTop: '1px solid #F0F1F5' }}>
+      <div style={{ borderTop: '1px solid var(--line)' }}>
         <button className="list-row" style={{ borderTop: 0 }} onClick={() => setOpen(isOpen ? undefined : r.key)}>
           <div className="logo" style={r.cancelled ? { opacity: .5 } : undefined}>{r.name[0]}</div>
           <div className="grow">
-            <div style={r.cancelled ? { textDecoration: 'line-through', color: '#8A90A2' } : undefined}>{r.name}</div>
+            <div style={r.cancelled ? { textDecoration: 'line-through', color: 'var(--muted)' } : undefined}>{r.name}</div>
             <div className="small muted">{r.payments.length ? `${r.payments.length} ödeme bu dönem` : 'Bu dönem ödeme yok'}</div>
           </div>
           <b className="money">{formatTL(r.monthTotal)}</b>
@@ -70,17 +70,17 @@ export function Abonelikler({ txns, subs, period, periods, setPeriod, notify }: 
   return (
     <>
       <div className="row">
-        <h1 className="title">Abonelikler</h1>
+        <h1 className="title enter">Abonelikler</h1>
         <PeriodPicker period={period} periods={periods} setPeriod={setPeriod} />
       </div>
-      <div className="hero" style={{ marginTop: 0 }}>
+      <div className="hero enter" style={{ marginTop: 0, '--i': 1 } as React.CSSProperties}>
         <div className="row"><span className="k">Bu dönem aboneliklere giden</span><span className="k" style={{ fontWeight: 500 }}>{rangeLabel(period)}</span></div>
         <div className="v money" style={{ marginBottom: 0 }}>{formatTL(total)}</div>
       </div>
 
-      {active.length > 0 && <div className="card"><h3>Aktif</h3>{active.map(r => <Row key={r.key} r={r} />)}</div>}
-      {quiet.length > 0 && <div className="card"><h3>Bu dönem çekim olmayanlar</h3>{quiet.map(r => <Row key={r.key} r={r} />)}</div>}
-      {cancelled.length > 0 && <div className="card"><h3 className="muted">İptal edilenler</h3>{cancelled.map(r => <Row key={r.key} r={r} />)}</div>}
+      {active.length > 0 && <div className="card enter" style={{ '--i': 2 } as React.CSSProperties}><h3>Aktif</h3>{active.map(r => <Row key={r.key} r={r} />)}</div>}
+      {quiet.length > 0 && <div className="card enter" style={{ '--i': 3 } as React.CSSProperties}><h3>Bu dönem çekim olmayanlar</h3>{quiet.map(r => <Row key={r.key} r={r} />)}</div>}
+      {cancelled.length > 0 && <div className="card enter" style={{ '--i': 4 } as React.CSSProperties}><h3 className="muted">İptal edilenler</h3>{cancelled.map(r => <Row key={r.key} r={r} />)}</div>}
       {rows.length === 0 && <p className="muted empty">Henüz abonelik bulunamadı.</p>}
       <p className="muted small" style={{ padding: '12px 4px' }}>
         Apple gibi yerlerde ekstre hangi uygulama olduğunu yazmıyor. Bir ödemeye dokunup isim verirsen, aynı tutar sonraki aylarda gelince o ismi kullanırım.

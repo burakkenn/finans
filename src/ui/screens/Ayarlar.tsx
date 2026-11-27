@@ -1,11 +1,12 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useRef, useState } from 'react'
+import { IconSparkle, IconUpload } from '../icons'
+import { useUploader } from '../useUploader'
 import { exportBackup, importBackup } from '../../core/backup'
 import type { Kind } from '../../core/types'
 import { db, saveSettings } from '../../db/db'
-import { countIncomingAsIncome, importFile, reclassifyAll } from '../../db/importFile'
+import { countIncomingAsIncome, reclassifyAll } from '../../db/importFile'
 import { normTr } from '../../core/text'
-import { ReviewQueue } from '../components/ReviewQueue'
 import { categoriesFor } from '../components/TxnEditor'
 import { clearErrors, readErrors } from '../errorLog'
 import { parseAmountInput } from '../format'
@@ -92,30 +93,10 @@ function ErrorLogCard() {
   )
 }
 
-export function Ayarlar({ txns, settings, notify }: ScreenProps) {
-  const fileRef = useRef<HTMLInputElement>(null)
+export function Ayarlar({ txns, settings, notify, openReview }: ScreenProps) {
+  const up = useUploader(notify)
   const restoreRef = useRef<HTMLInputElement>(null)
-  const [busy, setBusy] = useState(false)
   const rules = useLiveQuery(() => db.rules.toArray(), []) ?? []
-
-  async function upload(files: FileList | null) {
-    if (!files?.length) return
-    setBusy(true)
-    let added = 0, skipped = 0
-    const errors: string[] = []
-    for (const f of Array.from(files)) {
-      try {
-        const r = await importFile(f)
-        added += r.added; skipped += r.skipped
-      } catch (e) {
-        errors.push(`${f.name}: ${(e as Error).message}`)
-      }
-    }
-    setBusy(false)
-    if (fileRef.current) fileRef.current.value = ''
-    if (errors.length) notify({ text: errors.join(' · '), error: true })
-    else notify({ text: `${added} yeni hareket eklendi${skipped ? `, ${skipped} tanesi zaten vardı` : ''}` })
-  }
 
   async function backup() {
     const blob = await exportBackup()
@@ -149,21 +130,34 @@ export function Ayarlar({ txns, settings, notify }: ScreenProps) {
 
   return (
     <>
-      <h1 className="title">Yükle & ayarlar</h1>
+      <h1 className="title enter">Yükle & ayarlar</h1>
 
       {!settings.ownerName && <NameCard initial="" onSave={saveName} />}
 
-      <div className="card">
+      <div className="card enter" style={{ '--i': 1 } as React.CSSProperties}>
         <h3>📥 Ekstre yükle</h3>
         <p className="muted small">İşCep'ten indirdiğin kart ekstresi (PDF) ya da hesap hareketleri (Excel). Aynı dosyayı tekrar yüklersen bir şey çoğalmaz.</p>
-        <input ref={fileRef} type="file" accept=".pdf,.xls,.xlsx,application/pdf,application/vnd.ms-excel" multiple hidden onChange={e => upload(e.target.files)} />
-        <button className="btn block" style={{ marginTop: 12 }} disabled={busy} onClick={() => fileRef.current?.click()}>
-          {busy ? 'Okunuyor…' : 'Dosya seç'}
+        {up.input}
+        <button className="btn block" style={{ marginTop: 12 }} disabled={up.busy} onClick={up.pick}>
+          <IconUpload size={18} /> {up.busy ? 'Okunuyor…' : 'Dosya seç'}
         </button>
+        {up.result && !up.result.errors.length && (
+          <div className="card enter" style={{ background: 'var(--hero)', border: 0, color: 'var(--hero-text)' }}>
+            <div className="row"><b>✅ {up.result.files} dosya okundu</b><button className="small" onClick={up.clearResult}>Kapat</button></div>
+            <p className="small" style={{ marginTop: 6 }}>
+              {up.result.added} yeni hareket eklendi{up.result.skipped ? `, ${up.result.skipped} tanesi zaten vardı` : ''}.
+              {up.result.review > 0 ? ` ${up.result.review} tanesi ne olduğunu soruyor.` : ''}
+            </p>
+            {reviewCount > 0 && <button className="btn block" style={{ marginTop: 10 }} onClick={openReview}><IconSparkle size={18} /> Şimdi ayır</button>}
+          </div>
+        )}
       </div>
 
-      <h3 style={{ margin: '22px 4px 4px' }}>🧐 Bunlar ne? {reviewCount > 0 && <span className="chip">{reviewCount}</span>}</h3>
-      <ReviewQueue txns={txns} notify={notify} />
+      <button className="card enter press" style={{ '--i': 2, width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 12 } as React.CSSProperties} onClick={openReview}>
+        <span style={{ fontSize: 26 }}>🧐</span>
+        <span className="grow"><h3>Bunlar ne?</h3><span className="muted small">{reviewCount ? `${reviewCount} hareket ne olduğunu soruyor` : 'Sorulacak hareket yok 🎉'}</span></span>
+        {reviewCount > 0 && <span className="chip">{reviewCount}</span>}
+      </button>
 
       <ManualAdd txns={txns} notify={notify} />
 
